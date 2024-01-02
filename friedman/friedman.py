@@ -1,50 +1,68 @@
+from typing import Dict, Union, List
+from .heatflow import HeatFlow
 import matplotlib.pyplot as plt
+import numpy as np
 
-from .baseline import baseline
-from .lib import integral_transform
-from .reading import read_file
+from .lib import linearization
 
 
-class HeatFlow:
-    def __init__(self, file_name: str) -> None:
-        self.data = read_file(file_name)
-        if self.data.size < 3:
-            raise ImportError(f"HeatFlow: file {file_name} is not correct")
-        self.data[3, :] = 0.0
+def friedman_show(heating_rate: Dict[int, HeatFlow]) -> None:
+    font = 14
 
-    @property
-    def Temp(self):
-        return self.data[0]
+    for ht in heating_rate:
+        heating_rate[ht].range(350, heating_rate[ht].Temp[-1])
+        heating_rate[ht].correct_baseline()
+        plt.plot(heating_rate[ht].Temp, heating_rate[ht].DSC, label=f"{ht} $K/min$")
+    plt.xlabel("$T~[K]$", fontsize=font)
+    plt.ylabel("$Heatflow~[mW/mg]$", fontsize=font)
+    plt.legend(fontsize=font - 1)
+    plt.savefig("Heatflow.jpg", dpi=300)
+    plt.close()
 
-    @property
-    def Time(self):
-        return self.data[1]
+    for ht in heating_rate:
+        plt.plot(
+            heating_rate[ht].Temp, heating_rate[ht].conversion, label=f"{ht} $K/min$"
+        )
+    plt.xlabel("$T~[K]$", fontsize=font)
+    plt.ylabel(r"Conversion $\alpha$", fontsize=font)
+    plt.legend(fontsize=font - 1)
+    plt.savefig("Conversion.jpg", dpi=300)
+    plt.close()
 
-    @property
-    def DSC(self):
-        return self.data[2]
+    alphas = np.linspace(0.05, 0.95, 19)
+    regres: Dict[float,List] = dict()
+    for alpha in alphas:
+        regres[alpha] = []
 
-    @property
-    def conversion(self):
-        conv = integral_transform(self.data[2])
-        conv[:] /= conv[-1]
-        return conv
+    for ht in heating_rate:
+        f = heating_rate[ht].ln_speed_inv_T()
+        for alpha in alphas:
+            regres[alpha].append(f(alpha))
 
-    def range(self, Tmin: float, Tmax: float) -> None:
-        if Tmin > Tmax:
-            Tmin, Tmax = Tmax, Tmin
-        for i in range(len(self.data[0])):
-            if self.data[0, i] > Tmin:
-                self.data = self.data[:, i:]
-                break
-        for i in range(len(self.data[0]) - 1, 0, -1):
-            if self.data[0, i] < Tmax:
-                self.data = self.data[:, :i]
-                break
+    energy: Dict[float,List] = dict()
+    for alpha in alphas:
+        curve = np.array(regres[alpha]).T
+        plt.plot(curve[0], curve[1], "o", label=f"${round(alpha, 2)}$")
+        w, b, mse = linearization(curve[0], curve[1])
+        energy[alpha] = [-w / 1000 * 8.31, mse]
+        plt.plot(curve[0], w * curve[0] + b, "-", color="black")
 
-    def correct_baseline(self, **kwargs) -> None:
-        self.data[2] -= baseline(self.data[2], **kwargs)
+    plt.xlabel("$1/T~[1/K]$", fontsize=font)
+    plt.ylabel(r"$\ln (d \alpha/ dt)~[1/s]$ ", fontsize=font)
+    plt.legend(fontsize=font - 5)
+    plt.savefig("ReactionRate.jpg", dpi=300)
+    plt.close()
 
-    def plot(self, fig_name: str) -> None:
-        plt.plot(self.data[0], self.data[2])
-        plt.savefig(f"{fig_name}.jpg", dpi=300)
+    for alpha in energy:
+        plt.errorbar(
+            alpha,
+            energy[alpha][0],
+            yerr=np.sqrt(energy[alpha][1]) * abs(energy[alpha][0]),
+            fmt="o",
+            ecolor="red",
+            capsize=7,
+        )
+    plt.xlabel(r"Conversion $\alpha$", fontsize=font)
+    plt.ylabel("$E_a~[kJ/mol]$")
+    plt.savefig("Energy.jpg", dpi=300)
+    plt.close()

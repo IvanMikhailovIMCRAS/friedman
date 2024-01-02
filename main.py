@@ -1,14 +1,13 @@
 import os
 
-import matplotlib.pyplot as plt
-
-from friedman import HeatFlow
-import numpy as np
+from friedman import HeatFlow, friedman_show
 
 if __name__ == "__main__":
-    HF = HeatFlow(os.path.join("data", "PB2_Astr_0.05%_3K.txt"))
-    HF.range(77, 205)
-    HF.correct_baseline()
-    plt.plot(HF.conversion, np.log(np.gradient(HF.conversion) / np.gradient(HF.Time)))
-    plt.show()
-    # HF.plot("hf")
+    ht = {
+        3: HeatFlow(os.path.join("data", "PB2_Astr_0.05%_3K.txt")),
+        5: HeatFlow(os.path.join("data", "PB2_Astr_0.05%_5K.txt")),
+        10: HeatFlow(os.path.join("data", "PB2_Astr_0.05%_10K.txt")),
+        15: HeatFlow(os.path.join("data", "PB2_Astr_0.05%_15K.txt")),
+        20: HeatFlow(os.path.join("data", "PB2_Astr_0.05%_20K.txt")),
+    }
+    friedman_show(heating_rate=ht)

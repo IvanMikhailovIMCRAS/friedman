@@ -7,7 +7,6 @@ def baseline(
     y: np.ndarray, max_iter: int = 100, precision: float = 1e-16
 ) -> np.ndarray:
     size = len(y)
-    max_iter = 100
     precision *= size
     y0 = np.linspace(y[0], y[-1], size)
     s = np.zeros(size, dtype=float)
