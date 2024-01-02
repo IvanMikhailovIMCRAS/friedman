@@ -9,7 +9,7 @@ from .lib import linearization
 
 def friedman_show(
     heating_rate: Dict[int, HeatFlow]
-) -> Dict[float, List[float, float, float]]:
+) -> Dict[float, List]:
     font = 14
 
     for ht in heating_rate:
