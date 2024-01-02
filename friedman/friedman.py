@@ -1,12 +1,15 @@
-from typing import Dict, Union, List
-from .heatflow import HeatFlow
+from typing import Dict, List
+
 import matplotlib.pyplot as plt
 import numpy as np
 
+from .heatflow import HeatFlow
 from .lib import linearization
 
 
-def friedman_show(heating_rate: Dict[int, HeatFlow]) -> None:
+def friedman_show(
+    heating_rate: Dict[int, HeatFlow]
+) -> Dict[float, List[float, float, float]]:
     font = 14
 
     for ht in heating_rate:
@@ -30,7 +33,7 @@ def friedman_show(heating_rate: Dict[int, HeatFlow]) -> None:
     plt.close()
 
     alphas = np.linspace(0.05, 0.95, 19)
-    regres: Dict[float,List] = dict()
+    regres: Dict[float, List] = dict()
     for alpha in alphas:
         regres[alpha] = []
 
@@ -39,11 +42,13 @@ def friedman_show(heating_rate: Dict[int, HeatFlow]) -> None:
         for alpha in alphas:
             regres[alpha].append(f(alpha))
 
-    energy: Dict[float,List] = dict()
+    energy: Dict[float, List] = dict()
+    model: Dict[float, List] = dict()
     for alpha in alphas:
         curve = np.array(regres[alpha]).T
         plt.plot(curve[0], curve[1], "o", label=f"${round(alpha, 2)}$")
         w, b, mse = linearization(curve[0], curve[1])
+        model[alpha] = [w, b, mse]
         energy[alpha] = [-w / 1000 * 8.31, mse]
         plt.plot(curve[0], w * curve[0] + b, "-", color="black")
 
@@ -66,3 +71,11 @@ def friedman_show(heating_rate: Dict[int, HeatFlow]) -> None:
     plt.ylabel("$E_a~[kJ/mol]$")
     plt.savefig("Energy.jpg", dpi=300)
     plt.close()
+
+    print(r"ln(d alpha / dt) = - a / T + b$")
+    print("alpha \t\t\t a \t\t\t b \t\t\t mse")
+    for alpha in alphas:
+        print(
+            f"{round(alpha,3)}\t{-model[alpha][0]}\t{model[alpha][1]}\t{model[alpha][2]}"
+        )
+    return model

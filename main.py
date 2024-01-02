@@ -10,4 +10,4 @@ if __name__ == "__main__":
         15: HeatFlow(os.path.join("data", "PB2_Astr_0.05%_15K.txt")),
         20: HeatFlow(os.path.join("data", "PB2_Astr_0.05%_20K.txt")),
     }
-    friedman_show(heating_rate=ht)
+    model = friedman_show(heating_rate=ht)
